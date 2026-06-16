@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0f1216">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Exam">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%230f1216'/%3E%3Cpath d='M90 138s-44-29-58-56C22 60 32 40 53 40c12 0 19 7 19 7s7-7 18-7c21 0 31 20 19 42-14 27-58 56-58 56z' fill='none' stroke='%2331c08a' stroke-width='8' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="manifest" href="data:application/json,%7B%22name%22%3A%22Chart%20by%20Exception%22%2C%22short_name%22%3A%22Exam%22%2C%22display%22%3A%22standalone%22%2C%22orientation%22%3A%22portrait%22%2C%22background_color%22%3A%22%230f1216%22%2C%22theme_color%22%3A%22%230f1216%22%2C%22start_url%22%3A%22.%22%7D">
+<title>Chart by Exception</title>
+<style>
+  :root{
+    --bg:#0f1216; --panel:#171b21; --card:#1e242c; --card-2:#222a33; --edge:#2a323c;
+    --ink:#f3f5f7; --dim:#aeb6c0; --faint:#6c7783; --line:#252c34;
+    --clear:#31c08a; --clear-d:#1f8f66; --flag:#ef5d52; --flag-d:#c23f36;
+    --neg:#4ea3e0; --neg-d:#2f7cb5; --defer:#8b94a0; --defer-d:#5f6873; --amber:#e0a042;
+    --pad: env(safe-area-inset-bottom, 0px); --top: env(safe-area-inset-top, 0px);
+    --display: ui-rounded, 'SF Pro Rounded', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --body: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:var(--bg); color:var(--ink); font-family:var(--body);
+    overscroll-behavior:none; -webkit-user-select:none; user-select:none; overflow:hidden;}
+  #app{position:relative; width:100%; max-width:480px; margin:0 auto;
+    height:100dvh; min-height:100vh; display:flex; flex-direction:column; background:var(--bg);}
+  button{font-family:inherit;}
+  :focus-visible{outline:2px solid var(--neg); outline-offset:2px;}
+  .view{display:none; flex:1 1 auto; min-height:0; flex-direction:column;}
+  .view.on{display:flex;}
+  .toast{position:fixed; left:50%; bottom:calc(var(--pad) + 120px); transform:translate(-50%,12px);
+    background:var(--ink); color:var(--bg); font-size:13.5px; font-weight:600; padding:11px 18px;
+    border-radius:12px; opacity:0; pointer-events:none; z-index:80; transition:opacity .2s, transform .2s;
+    max-width:88%; text-align:center;}
+  .toast.on{opacity:1; transform:translate(-50%,0);}
+  .head-row{display:flex; align-items:center; gap:12px; padding:calc(var(--top) + 16px) 18px 6px;}
+  .head-row h1{font-family:var(--display); font-weight:700; font-size:22px; letter-spacing:.4px;}
+  .head-row .sp{margin-left:auto;}
+  .linkbtn{background:none; border:none; color:var(--neg); font-size:15px; font-weight:600; cursor:pointer; padding:6px;}
+  .scroll{flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:6px 18px 10px;}
+  .sect-label{font-family:var(--mono); font-size:10.5px; letter-spacing:1.6px; color:var(--faint);
+    text-transform:uppercase; margin:14px 2px 9px;}
+  .presets{display:flex; flex-wrap:wrap; gap:9px;}
+  .preset{border:1.5px solid var(--edge); background:var(--card); color:var(--dim); border-radius:12px;
+    padding:11px 15px; font-size:14.5px; cursor:pointer; font-family:var(--body);}
+  .preset.on{border-color:var(--neg); background:rgba(78,163,224,.12); color:#cfe6f7;}
+  .sysgrid{display:flex; flex-direction:column; gap:8px; margin-top:4px;}
+  .sysrow{display:flex; align-items:center; gap:12px; background:var(--card); border:1px solid var(--line);
+    border-radius:12px; padding:11px 14px; cursor:pointer;}
+  .sysrow .gi{width:24px; height:24px; color:var(--faint); flex:none;}
+  .sysrow.on .gi{color:var(--ink);}
+  .sysrow .nm{font-size:15px; color:var(--dim);}
+  .sysrow.on .nm{color:var(--ink); font-weight:600;}
+  .sysrow .chk{margin-left:auto; width:24px; height:24px; border-radius:7px; border:1.5px solid var(--edge);
+    display:flex; align-items:center; justify-content:center; color:var(--bg);}
+  .sysrow.on .chk{background:var(--clear); border-color:var(--clear);}
+  .sysrow .chk svg{width:16px; height:16px; opacity:0;}
+  .sysrow.on .chk svg{opacity:1;}
+  .savepreset{display:flex; gap:9px; margin-top:12px;}
+  .savepreset input{flex:1; background:var(--card); border:1.5px solid var(--edge); border-radius:11px;
+    padding:11px 13px; color:var(--ink); font-size:14px; -webkit-user-select:text; user-select:text;}
+  .footbar{display:flex; gap:12px; padding:12px 18px calc(var(--pad) + 16px); border-top:1px solid var(--line);}
+  .btn{flex:1; height:56px; border-radius:16px; border:none; cursor:pointer; font-family:var(--display);
+    font-weight:700; font-size:16px; letter-spacing:.3px; transition:transform .08s ease, opacity .12s; color:#fff;}
+  .btn:active{transform:scale(.97);}
+  .btn:disabled{opacity:.4; cursor:default;}
+  .btn.primary{background:var(--clear);}
+  .btn.dark{background:var(--panel); color:var(--ink); border:1px solid var(--line);}
+  .btn.ghost{background:transparent; border:1.5px solid var(--edge); color:var(--dim); flex:0 0 auto; padding:0 18px;}
+  .topbar{display:flex; align-items:center; gap:12px; padding:calc(var(--top) + 14px) 18px 8px;}
+  .tb-btn{background:none; border:none; color:var(--dim); font-size:15px; padding:6px 2px; cursor:pointer;}
+  .tb-btn:disabled{opacity:.3; cursor:default;}
+  .counter{font-family:var(--mono); font-size:13px; color:var(--faint); letter-spacing:.5px; font-variant-numeric:tabular-nums;}
+  .tb-name{margin-left:auto; font-family:var(--mono); font-size:11px; letter-spacing:1.5px; color:var(--faint); text-transform:uppercase;}
+  .rail{height:3px; background:var(--line); border-radius:99px; margin:2px 18px 4px; overflow:hidden;}
+  .rail > i{display:block; height:100%; background:var(--clear); width:0; border-radius:99px; transition:width .35s cubic-bezier(.22,1,.36,1);}
+  .deck{position:relative; flex:1 1 auto; min-height:0; margin:8px 18px 4px;}
+  .ex-card{position:absolute; inset:0; background:var(--card); border:1px solid var(--edge); border-radius:26px;
+    box-shadow:0 18px 40px -22px rgba(0,0,0,.8); display:flex; flex-direction:column; align-items:center;
+    justify-content:center; padding:24px; will-change:transform; touch-action:none;}
+  .glyph{width:138px; height:138px; color:var(--ink); opacity:.96;}
+  .glyph svg{width:100%; height:100%;}
+  .ex-name{font-family:var(--display); font-weight:700; font-size:30px; letter-spacing:1.2px; text-transform:uppercase;
+    text-align:center; margin-top:22px; line-height:1.05;}
+  .ex-hint{margin-top:12px; font-size:13px; color:var(--faint); text-align:center;}
+  .stamp{position:absolute; padding:7px 15px; border-radius:10px; font-family:var(--display); font-weight:800;
+    font-size:22px; letter-spacing:2.5px; border:3px solid; opacity:0; pointer-events:none;}
+  .stamp.clear{top:48px; right:24px; color:var(--clear); border-color:var(--clear); transform:rotate(10deg);}
+  .stamp.flag{top:48px; left:24px; color:var(--flag); border-color:var(--flag); transform:rotate(-10deg);}
+  .stamp.neg{top:22px; left:50%; margin-left:-58px; color:var(--neg); border-color:var(--neg);}
+  .stamp.defer{bottom:26px; left:50%; margin-left:-54px; color:var(--defer); border-color:var(--defer);}
+  .vcard{position:absolute; inset:0; background:var(--card); border:1px solid var(--edge); border-radius:26px;
+    box-shadow:0 18px 40px -22px rgba(0,0,0,.8); display:flex; flex-direction:column; overflow:hidden;}
+  .vhead{display:flex; align-items:center; gap:12px; padding:16px 18px 12px; border-bottom:1px solid var(--line);}
+  .vhead .gi{width:30px; height:30px; color:var(--ink);}
+  .vhead .nm{font-family:var(--display); font-weight:700; font-size:20px; letter-spacing:1px; text-transform:uppercase;}
+  .vlist{flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:6px 14px;}
+  .vrow{display:flex; align-items:center; gap:12px; padding:13px 8px; border-bottom:1px solid var(--line); touch-action:none;}
+  .vrow:last-child{border-bottom:none;}
+  .vrow .vlab{font-size:15px; color:var(--dim); flex:1;}
+  .vrow .vlast{font-family:var(--mono); font-size:11px; color:var(--faint); margin-right:4px;}
+  .vrow .vbox{min-width:96px; text-align:right; display:flex; align-items:baseline; gap:5px; justify-content:flex-end;}
+  .vrow .vnum{font-family:var(--display); font-weight:700; font-size:26px; color:var(--ink); font-variant-numeric:tabular-nums;}
+  .vrow .vnum.unset{color:var(--faint);}
+  .vrow .vunit{font-size:12px; color:var(--faint);}
+  .vrow.flagged .vnum{color:var(--flag);}
+  .vrow .vin{width:78px; background:var(--card-2); border:1.5px solid var(--neg); border-radius:9px; padding:6px 8px;
+    color:var(--ink); font-size:18px; text-align:right; font-family:var(--display); -webkit-user-select:text; user-select:text;}
+  .vrow .grip{font-family:var(--mono); font-size:13px; color:var(--defer-d); opacity:.7;}
+  .vhint{text-align:center; font-size:12px; color:var(--faint); padding:8px 0 4px;}
+  .actions{display:flex; gap:12px; padding:6px 18px 6px;}
+  .act{flex:1; height:60px; border-radius:18px; border:1px solid var(--line); background:var(--panel); color:var(--ink);
+    cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px; font-family:var(--display);
+    font-weight:600; font-size:16px; letter-spacing:.3px; transition:transform .08s ease;}
+  .act:active{transform:scale(.96);}
+  .act .ic{width:22px; height:22px;}
+  .act.flag,.act.flag .ic{color:var(--flag);}
+  .act.clear,.act.clear .ic{color:var(--clear);}
+  .act.record{background:var(--clear); color:#fff; border-color:transparent;}
+  .act.small{flex:0 0 auto; padding:0 13px; height:60px; font-size:13.5px;}
+  .act.defer,.act.defer .ic{color:var(--defer);}
+  .act.neg,.act.neg .ic{color:var(--neg);}
+  .act small{font-family:var(--mono); font-size:9px; letter-spacing:1px; color:var(--faint); display:block;}
+  .nav{display:flex; align-items:stretch; border-top:1px solid var(--line); padding-bottom:var(--pad);}
+  .nav button{flex:1; background:none; border:none; color:var(--faint); cursor:pointer; display:flex;
+    flex-direction:column; align-items:center; gap:3px; padding:9px 0 7px; font-family:var(--body);}
+  .nav button .ic{width:22px; height:22px;}
+  .nav button span{font-size:10.5px; letter-spacing:.2px;}
+  .nav button:disabled{opacity:.32; cursor:default;}
+  .nav button.hot{color:var(--clear);}
+  .tabs{display:flex; gap:6px; padding:10px 18px 4px;}
+  .tab{flex:1; text-align:center; padding:10px; border-radius:11px; background:var(--panel); border:1px solid var(--line);
+    color:var(--dim); font-family:var(--display); font-weight:600; font-size:14.5px; cursor:pointer;}
+  .tab.on{background:var(--card-2); color:var(--ink); border-color:var(--edge);}
+  .rv-meta{display:flex; align-items:center; gap:8px; padding:8px 18px 6px;}
+  .init{background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:9px; color:var(--ink);
+    font-size:14px; -webkit-user-select:text; user-select:text;}
+  .rv-meta input.init{width:104px;}
+  .rv-date{margin-left:auto; display:flex; align-items:center; gap:4px;}
+  .nd{background:var(--panel); border:1px solid var(--line); color:var(--dim); width:30px; height:34px; border-radius:9px; font-size:18px; cursor:pointer;}
+  .rv-date input{width:72px; text-align:center; background:var(--panel); border:1px solid var(--line); border-radius:9px;
+    padding:8px; color:var(--ink); font-family:var(--mono); font-size:14px; -webkit-user-select:text; user-select:text;}
+  .sec{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:13px 15px; margin-bottom:11px; cursor:pointer;}
+  .sec.abn{border-left:3px solid var(--flag);}
+  .sec.norm{border-left:3px solid var(--clear-d);}
+  .sec.def{border-left:3px solid var(--defer-d);}
+  .sec .h{display:flex; align-items:center; gap:9px; margin-bottom:6px;}
+  .sec .h .gi{width:18px; height:18px; color:var(--faint);}
+  .sec .h .nm{font-family:var(--display); font-weight:700; font-size:13px; letter-spacing:1.3px; text-transform:uppercase;}
+  .sec .h .tag{margin-left:auto; font-family:var(--mono); font-size:9.5px; letter-spacing:1px; text-transform:uppercase; color:var(--faint);}
+  .sec.abn .h .tag{color:var(--flag);} .sec.def .h .tag{color:var(--defer);}
+  .sec .txt{font-size:14px; line-height:1.5; color:var(--dim);}
+  .sec .txt b{color:#ffd9d4; font-weight:600;}
+  .sec .txt .neg{color:#cfe6f7; font-weight:500;}
+  .sec .thumbs{display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;}
+  .sec .thumbs img{width:54px; height:54px; object-fit:cover; border-radius:8px; border:1px solid var(--edge);}
+  .notebox{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; font-size:14.5px;
+    line-height:1.6; color:var(--dim); white-space:pre-wrap; -webkit-user-select:text; user-select:text;}
+  .neuro-tog{font-family:var(--mono); font-size:11px; color:var(--clear); text-decoration:underline; cursor:pointer; display:inline-block; margin-top:6px;}
+  .enc{background:var(--card); border:1px solid var(--line); border-radius:13px; padding:13px 15px; margin-bottom:10px;}
+  .enc .top{display:flex; align-items:center; gap:10px;}
+  .enc .lab{font-family:var(--display); font-weight:700; font-size:16px;}
+  .enc .st{font-family:var(--mono); font-size:9.5px; letter-spacing:1px; text-transform:uppercase; padding:3px 8px; border-radius:6px;}
+  .enc .st.done{color:var(--clear); background:rgba(49,192,138,.12);}
+  .enc .st.prog{color:var(--amber); background:rgba(224,160,66,.12);}
+  .enc .sub{font-size:12.5px; color:var(--faint); margin-top:3px;}
+  .enc .row{display:flex; gap:8px; margin-top:11px;}
+  .enc .row button{flex:1; background:var(--panel); border:1px solid var(--line); color:var(--dim); border-radius:9px;
+    padding:9px; font-size:13px; cursor:pointer; font-family:var(--body);}
+  .enc .row button.danger{color:var(--flag); flex:0 0 auto; padding:9px 13px;}
+  .empty{text-align:center; color:var(--faint); font-size:14px; padding:40px 20px;}
+  .scrim{position:fixed; inset:0; background:rgba(6,8,10,.55); opacity:0; pointer-events:none; transition:opacity .25s ease; z-index:30; backdrop-filter:blur(2px);}
+  .scrim.on{opacity:1; pointer-events:auto;}
+  .sheet{position:fixed; left:50%; bottom:0; transform:translate(-50%,100%); width:100%; max-width:480px; max-height:90dvh;
+    z-index:40; background:var(--panel); border-radius:24px 24px 0 0; border:1px solid var(--line); border-bottom:none;
+    box-shadow:0 -20px 50px -20px rgba(0,0,0,.85); display:flex; flex-direction:column; transition:transform .34s cubic-bezier(.22,1.05,.36,1);}
+  .sheet.on{transform:translate(-50%,0);}
+  .handle{width:42px; height:5px; border-radius:99px; background:var(--edge); margin:10px auto 4px; flex:none;}
+  .sheet-head{display:flex; align-items:center; gap:14px; padding:6px 22px 14px; border-bottom:1px solid var(--line); flex:none;}
+  .sheet-glyph{width:44px; height:44px; flex:none;} .sheet-glyph svg{width:100%;height:100%;}
+  .sheet-head.flag .sheet-glyph{color:var(--flag);} .sheet-head.neg .sheet-glyph{color:var(--neg);}
+  .sheet-title .k{font-family:var(--mono); font-size:10px; letter-spacing:2px; color:var(--faint); text-transform:uppercase;}
+  .sheet-title .n{font-family:var(--display); font-weight:700; font-size:21px; letter-spacing:1px; text-transform:uppercase;}
+  .sheet-scroll{overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px 18px 8px; flex:1 1 auto; min-height:0;}
+  .chips{display:flex; flex-wrap:wrap; gap:10px;}
+  .chip{border:1.5px solid var(--edge); background:var(--card); color:var(--dim); border-radius:13px; padding:13px 15px;
+    font-size:15px; cursor:pointer; font-family:var(--body); line-height:1.1; min-height:46px;
+    transition:transform .07s ease, background .12s, border-color .12s, color .12s;}
+  .chip:active{transform:scale(.95);}
+  .chip.on{background:rgba(239,93,82,.12); border-color:var(--flag); color:#ffd9d4;}
+  .chip.neg.on{background:rgba(78,163,224,.12); border-color:var(--neg); color:#cfe6f7;}
+  .fblock{border:1px solid var(--line); background:var(--card); border-radius:14px; padding:12px; margin:12px 0;}
+  .fblock .ft{display:flex; align-items:center; gap:8px; margin-bottom:9px;}
+  .fblock .ft .fn{font-weight:600; font-size:14.5px; color:#ffd9d4;}
+  .fblock .ft .x{margin-left:auto; color:var(--flag); font-weight:700; cursor:pointer; padding:2px 8px;}
+  .axlab{font-family:var(--mono); font-size:9.5px; letter-spacing:1.4px; color:var(--faint); text-transform:uppercase; margin:9px 0 6px;}
+  .subchips{display:flex; flex-wrap:wrap; gap:7px;}
+  .subchip{border:1.5px solid var(--edge); background:var(--card-2); color:var(--dim); border-radius:9px; padding:8px 11px;
+    font-size:13px; cursor:pointer; font-family:var(--body); min-height:38px;}
+  .subchip.on{background:rgba(224,160,66,.14); border-color:var(--amber); color:#f6e2bf;}
+  .subchip.lat.on{background:rgba(78,163,224,.14); border-color:var(--neg); color:#cfe6f7;}
+  .fbtns{display:flex; gap:8px; margin-top:11px; flex-wrap:wrap;}
+  .fbtns button,.fbtns label{background:var(--card-2); border:1px solid var(--edge); color:var(--dim); border-radius:9px;
+    padding:9px 12px; font-size:13px; cursor:pointer; font-family:var(--body); display:flex; align-items:center; gap:6px;}
+  .fbtns .ic{width:15px; height:15px;}
+  .fthumb{width:46px; height:46px; object-fit:cover; border-radius:8px; border:1px solid var(--edge); margin-top:8px;}
+  .freewrap{margin-top:14px; position:relative;}
+  .freewrap input{width:100%; background:var(--card); border:1.5px solid var(--edge); border-radius:13px; padding:13px 46px 13px 15px;
+    color:var(--ink); font-family:var(--body); font-size:15px; -webkit-user-select:text; user-select:text;}
+  .freewrap input::placeholder{color:var(--faint);}
+  .freewrap input:focus{outline:none; border-color:var(--amber);}
+  .mic{position:absolute; right:8px; top:50%; transform:translateY(-50%); width:32px; height:32px; border-radius:8px;
+    background:var(--card-2); border:1px solid var(--edge); color:var(--dim); display:flex; align-items:center; justify-content:center; cursor:pointer;}
+  .mic.rec{color:var(--flag); border-color:var(--flag);}
+  .mic svg{width:16px;height:16px;}
+  .sheet-foot{display:flex; gap:12px; padding:14px 18px calc(var(--pad) + 14px); border-top:1px solid var(--line); flex:none;}
+  .bodywrap{margin-top:8px;}
+  .bodysvg{width:100%; max-width:230px; display:block; margin:6px auto;}
+  .bodysvg .rg{fill:var(--card-2); stroke:var(--edge); stroke-width:1.4; cursor:pointer;}
+  .bodysvg .rg.on{fill:rgba(78,163,224,.35); stroke:var(--neg); stroke-width:2;}
+  .bodytabs{display:flex; gap:8px; justify-content:center; margin-bottom:4px;}
+  .bodytabs button{background:var(--card-2); border:1px solid var(--edge); color:var(--dim); border-radius:8px; padding:6px 14px; font-size:12.5px; cursor:pointer;}
+  .bodytabs button.on{border-color:var(--neg); color:#cfe6f7;}
+  .bodysel{text-align:center; font-size:13px; color:var(--neg); min-height:18px; margin-top:2px;}
+  .listrow{display:flex; align-items:center; gap:12px; background:var(--card); border:1px solid var(--line); border-radius:11px;
+    padding:13px 15px; margin-bottom:8px; cursor:pointer;}
+  .listrow .gi{width:22px;height:22px;color:var(--faint);} .listrow .nm{font-size:15px; color:var(--ink);}
+  .listrow .st{margin-left:auto; font-family:var(--mono); font-size:9px; letter-spacing:1px; text-transform:uppercase; color:var(--faint);}
+  .listrow .st.clear{color:var(--clear);} .listrow .st.flag{color:var(--flag);} .listrow .st.def{color:var(--defer);}
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+<input type="checkbox" id="hap" switch style="position:absolute;opacity:0;pointer-events:none;width:0;height:0">
+<label for="hap" id="hapLabel" style="position:absolute;opacity:0;pointer-events:none;"></label>
+<div id="app">
+  <div class="view" id="v-setup">
+    <div class="head-row"><h1>New exam</h1><button class="linkbtn sp" onclick="showHistory()">History</button></div>
+    <div class="scroll">
+      <div class="sect-label">Quick presets</div>
+      <div class="presets" id="presets"></div>
+      <div class="sect-label">Systems in this exam</div>
+      <div class="sysgrid" id="sysgrid"></div>
+      <div class="savepreset">
+        <input type="text" id="presetName" placeholder="Save current selection as…">
+        <button class="btn ghost" onclick="saveCurrentPreset()">Save</button>
+      </div>
+    </div>
+    <div class="footbar">
+      <input class="init" id="setupInit" placeholder="Pt initials" style="flex:0 0 110px;">
+      <button class="btn primary" id="startBtn" onclick="startExam()">Start exam</button>
+    </div>
+  </div>
+  <div class="view" id="v-deck">
+    <div class="topbar">
+      <button class="tb-btn" id="backBtn" onclick="goBack()">‹ Back</button>
+      <span class="counter" id="counter">01 / 16</span>
+      <span class="tb-name" id="ptTag"></span>
+    </div>
+    <div class="rail"><i id="railFill"></i></div>
+    <div class="deck" id="deck"></div>
+    <div class="actions" id="actions"></div>
+    <div class="nav" id="nav"></div>
+  </div>
+  <div class="view" id="v-review">
+    <div class="head-row">
+      <button class="tb-btn" onclick="leaveReview()">‹</button>
+      <h1 style="font-size:20px">Encounter</h1>
+      <button class="linkbtn sp" onclick="finishAndClose()">Done</button>
+    </div>
+    <div class="tabs">
+      <div class="tab on" id="tabChart" onclick="setTab('chart')">Chart</div>
+      <div class="tab" id="tabNote" onclick="setTab('note')">Suggested note</div>
+    </div>
+    <div class="rv-meta">
+      <input class="init" id="adateInit" placeholder="Pt initials">
+      <div class="rv-date"><button class="nd" onclick="nudge(-1)">−</button><input type="text" id="adate"><button class="nd" onclick="nudge(1)">+</button></div>
+    </div>
+    <div class="scroll" id="rvScroll"></div>
+    <div class="footbar">
+      <button class="btn ghost" onclick="editFromReview()">Edit</button>
+      <button class="btn dark" id="copyBtn" onclick="copyCurrent()">Copy</button>
+      <button class="btn primary" id="shareBtn" onclick="shareCurrent()" style="background:var(--clear)">Share</button>
+    </div>
+  </div>
+  <div class="view" id="v-history">
+    <div class="head-row"><button class="tb-btn" onclick="showSetup()">‹</button><h1 style="font-size:20px">Encounters</h1><button class="linkbtn sp" onclick="showSetup()">+ New</button></div>
+    <div class="scroll" id="histList"></div>
+  </div>
+  <div class="scrim" id="scrim" onclick="dismissSheet()"></div>
+  <div class="sheet" id="sheet">
+    <div class="handle" onclick="dismissSheet()"></div>
+    <div class="sheet-head" id="sheetHead">
+      <span class="sheet-glyph" id="sheetGlyph"></span>
+      <div class="sheet-title"><div class="k" id="sheetKicker">specify findings</div><div class="n" id="sheetName"></div></div>
+    </div>
+    <div class="sheet-scroll">
+      <div class="chips" id="sheetChips"></div>
+      <div id="sheetAxes"></div>
+      <div class="bodywrap" id="sheetBody" style="display:none"></div>
+      <div class="freewrap" id="freeWrap">
+        <input type="text" id="freeIn" placeholder="Other finding — not listed" oninput="refreshSave()">
+        <button class="mic" id="micBtn" onclick="toggleMic()" aria-label="Dictate"></button>
+      </div>
+    </div>
+    <div class="sheet-foot" id="sheetFoot"></div>
+  </div>
+  <div class="scrim" id="scrim2" onclick="closeJump()"></div>
+  <div class="sheet" id="sheet2">
+    <div class="handle" onclick="closeJump()"></div>
+    <div class="sheet-head"><div class="sheet-title"><div class="k">jump to system</div><div class="n">Systems</div></div></div>
+    <div class="sheet-scroll" id="jumpList"></div>
+    <div class="sheet-foot"><button class="btn dark" onclick="closeJump()" style="flex:1">Close</button></div>
+  </div>
+  <div class="toast" id="toast" aria-live="polite"></div>
+</div>
+<script>
+const STROKE=`fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"`;
+const ICONS={
+  vitals:`<svg viewBox="0 0 24 24"><path d="M3 12h3.5l2-5 3 11 2.5-8 1.5 2H21" ${STROKE}/></svg>`,
+  general:`<svg viewBox="0 0 24 24"><circle cx="12" cy="7.5" r="3.2" ${STROKE}/><path d="M5.5 19.5c0-3.7 2.9-6.5 6.5-6.5s6.5 2.8 6.5 6.5" ${STROKE}/></svg>`,
+  eyes:`<svg viewBox="0 0 24 24"><path d="M2.5 12S6 6.2 12 6.2 21.5 12 21.5 12 18 17.8 12 17.8 2.5 12 2.5 12z" ${STROKE}/><circle cx="12" cy="12" r="2.7" ${STROKE}/></svg>`,
+  hent:`<svg viewBox="0 0 24 24"><path d="M16 4.5C11.5 3 6.6 5.2 6 10c-.2 1.7-1.4 2.6-1.8 3.6-.3.9.7 1.3.7 1.3s-.4 1.9.5 2.6c.7.5 1.8.2 1.8.2s0 2.4 2 3.1c1.6.6 3.4.3 4.4-.6" ${STROKE}/><path d="M10.5 12.3c.9.3 1.4 1.3.9 2.2" ${STROKE}/></svg>`,
+  neck:`<svg viewBox="0 0 24 24"><path d="M8.5 4c0 3 .2 4.4-1.3 6M15.5 4c0 3-.2 4.4 1.3 6" ${STROKE}/><path d="M9 10.5h6M12 10.5v4" ${STROKE}/><path d="M6.5 20.5c0-3.6 2.4-6 5.5-6s5.5 2.4 5.5 6" ${STROKE}/></svg>`,
+  resp:`<svg viewBox="0 0 24 24"><path d="M12 3.5v6" ${STROKE}/><path d="M12 8.5c0-1.4-1-2-1.9-1.3-1 .8-2.6 3-3.4 5.6-.7 2.2-.9 4.4-.5 6.2.3 1.3 2 1.6 2.9.7l2.9-2.9" ${STROKE}/><path d="M12 8.5c0-1.4 1-2 1.9-1.3 1 .8 2.6 3 3.4 5.6.7 2.2.9 4.4.5 6.2-.3 1.3-2 1.6-2.9.7L12 16.8" ${STROKE}/></svg>`,
+  cardio:`<svg viewBox="0 0 24 24"><path d="M12 20.3S3.5 15 3.5 8.9C3.5 6 5.6 4 8.2 4c1.9 0 3.1 1.1 3.8 2 .7-.9 1.9-2 3.8-2 2.6 0 4.7 2 4.7 4.9 0 6.1-8.5 11.4-8.5 11.4z" ${STROKE}/><path d="M6.5 11h3l1.5-2.5 1.5 4 1.3-2.2h3.2" ${STROKE}/></svg>`,
+  gi:`<svg viewBox="0 0 24 24"><path d="M9 4.5v3.2c0 2 1.6 3.6 3.6 3.6 1.6 0 2.9-1.1 2.9-2.7V7" ${STROKE}/><path d="M15.5 9c1.4 0 2 1.1 2 2.4v2.1c0 2.8-2.3 5.5-5.6 5.5-2.7 0-5.4-1.9-5.4-5.4" ${STROKE}/><path d="M6.5 13.6c0-1.3.9-2.2 2-2.2" ${STROKE}/></svg>`,
+  lymph:`<svg viewBox="0 0 24 24"><circle cx="8" cy="8.5" r="2.6" ${STROKE}/><circle cx="15.6" cy="7.4" r="2" ${STROKE}/><circle cx="12.2" cy="15" r="2.4" ${STROKE}/><path d="M9.9 10l1.3 2.7M13.8 8.9l-1 3.3" ${STROKE}/></svg>`,
+  msk:`<svg viewBox="0 0 24 24"><path d="M8 16l8-8" ${STROKE}/><path d="M5.8 16.4a2.1 2.1 0 1 0 2.6-2.6 1.7 1.7 0 0 1-2-2 2.1 2.1 0 1 0-2.6 2.6 1.7 1.7 0 0 1 2 2z" ${STROKE}/><path d="M18.2 7.6a2.1 2.1 0 1 0-2.6 2.6 1.7 1.7 0 0 1 2 2 2.1 2.1 0 1 0 2.6-2.6 1.7 1.7 0 0 1-2-2z" ${STROKE}/></svg>`,
+  gait:`<svg viewBox="0 0 24 24"><circle cx="14" cy="4.6" r="1.8" ${STROKE}/><path d="M14 6.6l-2.2 4.6 1.4 1.5 1.3 5.3" ${STROKE}/><path d="M11.8 11.2L8 12.6" ${STROKE}/><path d="M13.2 12.7l3.4 1.9-.6 3.4" ${STROKE}/></svg>`,
+  grip:`<svg viewBox="0 0 24 24"><path d="M9 11.5V6.8a1.2 1.2 0 0 1 2.4 0v3.5" ${STROKE}/><path d="M11.4 10.3V5.6a1.2 1.2 0 0 1 2.4 0v4.7" ${STROKE}/><path d="M13.8 10.3V7.2a1.2 1.2 0 0 1 2.4 0v3.6" ${STROKE}/><path d="M16.2 9.4c.3-.9 1.4-1 2-.2.4.6.4 4-.4 6.2-.7 2-2.3 3.6-4.7 3.6h-2c-1.6 0-2.7-.9-3.4-2.3l-1.6-3.3c-.5-1 .6-2 1.6-1.4l1.7 1.2" ${STROKE}/></svg>`,
+  extrem:`<svg viewBox="0 0 24 24"><path d="M10 4v7.5l-1.1 4.2L10 20" ${STROKE}/><path d="M14 4v6" ${STROKE}/><path d="M10 11.5l3.6.6" ${STROKE}/><path d="M9 20.2h4.3l1-2.2" ${STROKE}/></svg>`,
+  skin:`<svg viewBox="0 0 24 24"><rect x="4.5" y="6" width="15" height="12" rx="2.4" ${STROKE}/><path d="M4.5 10h15" ${STROKE}/><path d="M8 13.3h.01M11 14.4h.01M14 12.9h.01M16.6 14h.01" ${STROKE}/></svg>`,
+  mental:`<svg viewBox="0 0 24 24"><path d="M16.5 5.5c2 1.4 2.6 4.2 1.3 6.3-.3 2-1.7 4.2-4.3 4.7v2.5" ${STROKE}/><path d="M16.5 5.5C14.9 3.9 11.5 3.9 9 5.5 7 6.8 6.2 9 6.6 11c-.4 1.6-1.4 2.4-1.4 2.4s1 1 2.4.9c.6 1.6 2.2 2.6 4.2 2.6" ${STROKE}/><path d="M9.8 10.5h.01M13 10.5h.01" ${STROKE}/></svg>`,
+  neuro:`<svg viewBox="0 0 24 24"><path d="M12 4.5C10.2 3.4 7.4 4 7 6.3c-1.6.4-2.4 2.2-1.6 3.6-1 1.1-.8 2.9.5 3.6-.3 1.7 1 3.3 2.8 3.2.4 1.4 2 2.1 3.3 1.3" ${STROKE}/><path d="M12 4.5c1.8-1.1 4.6-.5 5 1.8 1.6.4 2.4 2.2 1.6 3.6 1 1.1.8 2.9-.5 3.6.3 1.7-1 3.3-2.8 3.2-.4 1.4-2 2.1-3.3 1.3" ${STROKE}/><path d="M12 4.5v15" ${STROKE}/></svg>`
+};
+const I_FLAG=`<svg viewBox="0 0 24 24"><path d="M5 21V4M5 4l6.5 2 6.5-2v9l-6.5 2L5 13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const I_CLEAR=`<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 6.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const I_DEFER=`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" ${STROKE}/><path d="M8 12h8" ${STROKE}/></svg>`;
+const I_NEG=`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" ${STROKE}/><path d="M9 12h6" ${STROKE}/></svg>`;
+const I_UNDO=`<svg viewBox="0 0 24 24"><path d="M9 7L4 12l5 5M4 12h11a5 5 0 0 1 0 10h-3" ${STROKE}/></svg>`;
+const I_LIST=`<svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" ${STROKE}/></svg>`;
+const I_DOC=`<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z M14 3v4h4 M9 12h6M9 16h6" ${STROKE}/></svg>`;
+const I_HIST=`<svg viewBox="0 0 24 24"><path d="M12 7v5l3 2 M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8 M3.5 4v4h4" ${STROKE}/></svg>`;
+const I_CAM=`<svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2.5" ${STROKE}/><circle cx="12" cy="13.5" r="3.4" ${STROKE}/><path d="M8 7l1.4-2.5h5.2L16 7" ${STROKE}/></svg>`;
+const I_BODY=`<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.3" ${STROKE}/><path d="M12 7.3v7M12 9l-4 1.5M12 9l4 1.5M12 14.3l-2.5 6M12 14.3l2.5 6" ${STROKE}/></svg>`;
+const I_MIC=`<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" ${STROKE}/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3" ${STROKE}/></svg>`;
+
+const SYSTEMS=[
+  { name:"VITALS", icon:"vitals", type:"value" },
+  { name:"GENERAL", icon:"general",
+    clauses:["Well-developed, well-nourished, appropriately dressed, appearing stated age, in no acute distress."],
+    abn:[{label:"Acute distress",text:"In acute distress",cancel:0},{label:"Cachectic / poorly nourished",text:"Cachectic and poorly nourished appearing",cancel:0},{label:"Disheveled",text:"Disheveled and inappropriately dressed",cancel:0},{label:"Ill-appearing",text:"Ill-appearing and uncomfortable",cancel:0},{label:"Obese",text:"Obese",cancel:-1}],
+    loc:[], sev:[], neg:["Denies fever","Denies chills","Denies weight loss","Denies fatigue"] },
+  { name:"EYES", icon:"eyes", lat:true,
+    clauses:["No enophthalmos or exophthalmos, strabismus, nystagmus, ptosis, edema, lesions of lids, or lid lag.","Conjunctivae and sclerae moist without jaundice.","Cornea and anterior chamber clear.","Pupils equal round, reactive to light and accommodation."],
+    abn:[{label:"Conjunctival injection",text:"Conjunctival injection present",cancel:-1},{label:"Icterus / jaundice",text:"Scleral icterus present",cancel:1,token:"jaundice"},{label:"Nystagmus",text:"Nystagmus present",cancel:0,token:"nystagmus"},{label:"Pale conjunctivae",text:"Conjunctival pallor noted",cancel:-1},{label:"Ptosis",text:"Ptosis present",cancel:0,token:"ptosis"},{label:"Pupils unequal",text:"Pupils unequal/anisocoria noted",cancel:3}],
+    loc:["Left eye","Right eye"], sev:[], neg:["Denies vision changes","Denies eye pain","Denies discharge"] },
+  { name:"HENT", icon:"hent", lat:true,
+    clauses:["Head: Normocephalic without scalp lesions. No facial asymmetry or sinus tenderness; no parotid or submaxillary gland enlargement or tenderness.","Ears: No external tenderness or lesions of pinnae. Canals patent without inflammation. Tympanic membranes intact with normal light reflex and landmarks.","Nose: No deformity. Nares patent. Mucous membranes pink without discharge, hypertrophy, polyps, or other lesions. No septal deviation.","Throat/Mouth: Lips without lesions. Mucous membranes moist, pink, and without inflammation or lesions. Tongue normal size and papillation. Gingiva pink without hypertrophy."],
+    abn:[{label:"Dry mucous membranes",text:"Oral mucous membranes dry",cancel:-1},{label:"Erythematous pharynx",text:"Pharynx erythematous",cancel:-1},{label:"Facial asymmetry",text:"Facial asymmetry noted",cancel:0,token:"facial asymmetry"},{label:"Nasal discharge",text:"Nasal discharge present",cancel:2,token:"discharge"},{label:"Sinus tenderness",text:"Sinus tenderness present",cancel:0,token:"sinus tenderness"},{label:"TM erythema / effusion",text:"Tympanic membrane erythema/effusion present",cancel:-1}],
+    loc:["Left","Right"], sev:[], neg:["Denies sore throat","Denies ear pain","Denies congestion","Denies hearing loss"] },
+  { name:"NECK", icon:"neck",
+    clauses:["Supple, no masses or tenderness.","Trachea midline.","Thyroid not palpable."],
+    abn:[{label:"JVD",text:"Jugular venous distention present",cancel:-1},{label:"Lymphadenopathy",text:"Cervical lymphadenopathy present",cancel:-1},{label:"Mass",text:"Neck mass palpable",cancel:0,token:"masses"},{label:"Nuchal rigidity",text:"Nuchal rigidity present",cancel:0},{label:"Thyromegaly",text:"Thyromegaly present",cancel:2},{label:"Tracheal deviation",text:"Tracheal deviation noted",cancel:1}],
+    loc:[], sev:[], neg:["Denies neck pain","Denies stiffness","Denies swelling"] },
+  { name:"RESPIRATORY", icon:"resp", lat:true,
+    clauses:["Respiratory excursions full and symmetrical without use of accessory muscles.","No increase in A-P diameter or obvious chest wall deformity.","Normal vocal and tactile fremitus.","Lungs resonant to percussion.","Vesicular breath sounds throughout peripheral lung fields.","No rales, ronchi, wheezes, or rubs."],
+    abn:[{label:"Accessory muscle use",text:"Accessory muscle use noted",cancel:0,token:"use of accessory muscles"},{label:"Decreased breath sounds",text:"Decreased breath sounds",cancel:-1},{label:"Dullness to percussion",text:"Dullness to percussion",cancel:3},{label:"Rales / crackles",text:"Rales/crackles present",cancel:5,token:"rales"},{label:"Rhonchi",text:"Rhonchi present",cancel:5,token:"ronchi"},{label:"Wheezes",text:"Wheezes present",cancel:5,token:"wheezes"}],
+    loc:["Left base","Left lung","Right base","Right lung","Bibasilar","Apices"], sev:[], neg:["Denies shortness of breath","Denies cough","Denies wheezing","Denies sputum"] },
+  { name:"CARDIOVASCULAR", icon:"cardio",
+    clauses:["No thrill.","Regular rate and rhythm.","No systolic murmur heard.","No diastolic murmur, gallop, click or rub.","All distal pulses intact, full and equal."],
+    abn:[{label:"Diastolic murmur",text:"Diastolic murmur present",cancel:3,token:"diastolic murmur"},{label:"Diminished pulses",text:"Diminished distal pulses",cancel:4},{label:"Gallop (S3/S4)",text:"Gallop present",cancel:3,token:"gallop"},{label:"Irregular rhythm",text:"Irregularly irregular rhythm",cancel:1},{label:"Systolic murmur",text:"Systolic murmur present",cancel:2},{label:"Tachycardia",text:"Tachycardic",cancel:1}],
+    loc:["LUSB","RUSB","LLSB","Apex"], sev:["Grade I/VI","Grade II/VI","Grade III/VI","Grade IV/VI","Grade V/VI","Grade VI/VI"], neg:["Denies chest pain","Denies palpitations","Denies orthopnea","Denies leg swelling"] },
+  { name:"GASTROINTESTINAL", icon:"gi",
+    clauses:["No abnormal tympany.","Active bowel sounds without bruits or peristaltic rushes.","No palpable organomegaly, masses, rigidity, guarding, direct or rebound tenderness."],
+    abn:[{label:"Distension",text:"Abdominal distension present",cancel:-1},{label:"Guarding",text:"Guarding present",cancel:2,token:"guarding"},{label:"Hepatomegaly",text:"Hepatomegaly present",cancel:2,token:"organomegaly"},{label:"Hypoactive bowel sounds",text:"Hypoactive bowel sounds",cancel:1},{label:"Rebound tenderness",text:"Rebound tenderness present",cancel:-1},{label:"Tenderness",text:"Tenderness to palpation",cancel:-1}],
+    loc:["RUQ","LUQ","RLQ","LLQ","Epigastric","Periumbilical","Diffuse","Suprapubic"], sev:["Mild","Moderate","Severe"], neg:["Denies nausea","Denies vomiting","Denies abdominal pain","Denies diarrhea","Denies constipation"] },
+  { name:"LYMPHATICS", icon:"lymph",
+    clauses:["No anterior or posterior cervical, occipital, supraclavicular, axillary, epitrochlear, inguinal, or popliteal nodes palpable."],
+    abn:[{label:"Lymphadenopathy",text:"Lymphadenopathy palpable",cancel:-1}],
+    loc:["Cervical","Supraclavicular","Axillary","Inguinal","Epitrochlear"], sev:["Mild","Moderate","Marked","Tender","Non-tender"], neg:["Denies swollen glands"] },
+  { name:"MUSCULOSKELETAL", icon:"msk", lat:true, body:true,
+    clauses:["No muscle asymmetry, atrophy, or involuntary movements.","No structural deformity, effusion, periarticular swelling, erythema, heat, swelling, or tenderness of any joint except as mentioned specifically below."],
+    abn:[{label:"Atrophy",text:"Muscle atrophy noted",cancel:0,token:"atrophy"},{label:"Decreased ROM",text:"Decreased range of motion",cancel:-1},{label:"Deformity",text:"Structural deformity present",cancel:1,token:"structural deformity"},{label:"Effusion",text:"Joint effusion present",cancel:1,token:"effusion"},{label:"Joint tenderness",text:"Joint tenderness present",cancel:-1},{label:"Swelling / erythema",text:"Swelling and erythema present",cancel:1,token:"erythema"}],
+    loc:["Cervical spine","Lumbar spine","Shoulder","Knee","Hip","Hand","Ankle"], sev:["Mild","Moderate","Severe"], neg:["Denies joint pain","Denies weakness","Denies back pain","Denies stiffness"] },
+  { name:"GAIT / STATION", icon:"gait",
+    clauses:["Normal, able to rise from a sitting position without assistance, stand on tiptoes, heels and tandem walk without problems.","Able to bend and squat without difficulty."],
+    abn:[{label:"Antalgic gait",text:"Antalgic gait noted",cancel:0},{label:"Cannot squat",text:"Unable to bend and squat without difficulty",cancel:1},{label:"Cannot tandem walk",text:"Unable to tandem walk",cancel:0,token:"tandem walk"},{label:"Uses assistive device",text:"Ambulates with assistive device",cancel:0},{label:"Wide-based gait",text:"Wide-based unsteady gait",cancel:0}],
+    loc:[], sev:[], neg:["Denies falls","Denies imbalance"] },
+  { name:"GRIP", icon:"grip", lat:true,
+    clauses:["5/5 strength with adequate fine motor movements, dexterity and ability to grasp objects bilaterally."],
+    abn:[{label:"Decreased dexterity",text:"Decreased fine motor dexterity",cancel:-1},{label:"Reduced grip strength",text:"Reduced grip strength",cancel:-1}],
+    loc:[], sev:["4/5","3/5","2/5","1/5"], neg:["Denies hand weakness","Denies numbness"] },
+  { name:"EXTREMITIES", icon:"extrem", lat:true, body:true,
+    clauses:["No edema, no cyanosis, no erythema."],
+    abn:[{label:"Cyanosis",text:"Cyanosis present",cancel:0,token:"cyanosis"},{label:"Edema",text:"Pitting edema present",cancel:0,token:"edema"},{label:"Erythema",text:"Erythema present",cancel:0,token:"erythema"}],
+    loc:[], sev:["1+","2+","3+","4+"], neg:["Denies swelling","Denies calf pain","Denies color changes"] },
+  { name:"SKIN", icon:"skin", body:true,
+    clauses:["Warm, dry, with good turgor.","No abnormal pigmentation, rash, or other lesions.","Hair: normal texture and distribution.","No tender or trigger points."],
+    abn:[{label:"Diaphoretic",text:"Diaphoretic",cancel:0,token:"dry"},{label:"Lesion",text:"Skin lesion noted",cancel:1,token:"lesions"},{label:"Pallor",text:"Pallor noted",cancel:-1},{label:"Poor turgor",text:"Poor skin turgor",cancel:0,token:"good turgor"},{label:"Rash",text:"Rash present",cancel:1,token:"rash"}],
+    loc:[], sev:["Mild","Moderate","Extensive"], neg:["Denies rash","Denies itching","Denies new lesions"] },
+  { name:"MENTAL STATUS", icon:"mental",
+    clauses:["Alert and oriented to time, place and situation.","Cooperative with exam.","Does not appear depressed or anxious.","Able to communicate with no deficits.","Recent and remote memory intact.","Good insight and cognitive function."],
+    abn:[{label:"Anxious",text:"Appears anxious",cancel:2,token:"anxious"},{label:"Depressed affect",text:"Depressed affect",cancel:2,token:"depressed"},{label:"Disoriented",text:"Disoriented",cancel:0},{label:"Memory deficits",text:"Memory deficits noted",cancel:4},{label:"Poor insight",text:"Poor insight",cancel:5},{label:"Uncooperative",text:"Uncooperative with exam",cancel:1}],
+    loc:[], sev:[], neg:["Denies depressed mood","Denies anxiety","Denies confusion"] },
+  { name:"NEUROLOGICAL", icon:"neuro", lat:true, body:true,
+    clauses:["Cranial Nerves II–XII grossly intact.","Motor: Good tone; strength 5/5 bilaterally in all muscle groups.","Cerebellar: Romberg negative; finger-to-nose, heel-to-shin, and rapid alternating movements intact and without fatigue.","Reflexes: No abnormal reflexes.","Sensory: Light touch, pain, position, vibratory intact throughout."],
+    clausesLong:["Cranial Nerves: I: Not tested. II: Visual acuity 20/20 without correction; fields intact to confrontation. III, IV, VI: No ptosis; pupils equal and reactive; extraocular muscles full. V: Mastication strong; facial sensation intact. VII: No facial asymmetry; expression intact. VIII: Hearing intact to whisper. IX, X: Palate elevates symmetrically; gag intact. XI: Neck and shoulder strength intact. XII: Tongue midline, full range.","Motor: Good tone; strength 5/5 bilaterally in all muscle groups.","Cerebellar: Romberg negative; finger-to-nose, heel-to-shin, and rapid alternating movements intact and without fatigue.","Reflexes: No abnormal reflexes.","Sensory: Light touch, pain, position, vibratory intact throughout."],
+    abn:[{label:"Cranial nerve deficit",text:"Cranial nerve deficit noted",cancel:-1},{label:"Decreased sensation",text:"Decreased sensation",cancel:4,token:"Light touch"},{label:"Hyperreflexia",text:"Hyperreflexia present",cancel:3},{label:"Motor weakness",text:"Motor weakness noted",cancel:-1},{label:"Positive Romberg",text:"Romberg positive",cancel:2,token:"Romberg negative"},{label:"Tremor",text:"Tremor present",cancel:-1}],
+    loc:["Upper extremity","Lower extremity","CN III","CN VII"], sev:["4/5","3/5","2/5","1/5"], neg:["Denies headache","Denies dizziness","Denies numbness","Denies weakness","Denies seizures"] }
+];
+const VITAL_FIELDS=[
+  {key:'sys',label:'BP systolic',unit:'',step:1,min:60,max:260,def:120,lo:90,hi:140},
+  {key:'dia',label:'BP diastolic',unit:'',step:1,min:30,max:160,def:80,lo:60,hi:90},
+  {key:'hr',label:'Heart rate',unit:'bpm',step:1,min:30,max:220,def:72,lo:60,hi:100},
+  {key:'rr',label:'Resp rate',unit:'/min',step:1,min:6,max:60,def:16,lo:12,hi:20},
+  {key:'temp',label:'Temp',unit:'°F',step:0.1,min:93,max:108,def:98.6,lo:97,hi:100.4},
+  {key:'spo2',label:'SpO₂',unit:'%',step:1,min:60,max:100,def:98,lo:92,hi:100},
+  {key:'wt',label:'Weight',unit:'lb',step:0.5,min:0,max:600,def:160,lo:null,hi:null},
+  {key:'pain',label:'Pain',unit:'/10',step:1,min:0,max:10,def:0,lo:0,hi:3}
+];
+const ONSETS=['Today','Days','Weeks','Chronic'];
+const BODY_REGIONS=[
+  {id:'head',label:'Head',back:'Occiput',s:'e',cx:100,cy:36,rx:24,ry:28},
+  {id:'neck',label:'Neck',back:'Posterior neck',s:'r',x:88,y:62,w:24,h:16,r:6},
+  {id:'chest',label:'Chest',back:'Upper back',s:'r',x:62,y:80,w:76,h:46,r:12},
+  {id:'abd',label:'Abdomen',back:'Lower back',s:'r',x:64,y:128,w:72,h:42,r:12},
+  {id:'pelvis',label:'Pelvis',back:'Buttocks',s:'r',x:66,y:172,w:68,h:34,r:12},
+  {id:'rsh',label:'R shoulder',back:'R shoulder',s:'e',cx:56,cy:86,rx:13,ry:11},
+  {id:'lsh',label:'L shoulder',back:'L shoulder',s:'e',cx:144,cy:86,rx:13,ry:11},
+  {id:'rarm',label:'R arm',back:'R arm',s:'r',x:38,y:96,w:18,h:78,r:9},
+  {id:'larm',label:'L arm',back:'L arm',s:'r',x:144,y:96,w:18,h:78,r:9},
+  {id:'rhand',label:'R hand',back:'R hand',s:'e',cx:47,cy:184,rx:12,ry:14},
+  {id:'lhand',label:'L hand',back:'L hand',s:'e',cx:153,cy:184,rx:12,ry:14},
+  {id:'rthigh',label:'R thigh',back:'R post. thigh',s:'r',x:68,y:208,w:28,h:66,r:12},
+  {id:'lthigh',label:'L thigh',back:'L post. thigh',s:'r',x:104,y:208,w:28,h:66,r:12},
+  {id:'rknee',label:'R knee',back:'R popliteal',s:'e',cx:82,cy:280,rx:14,ry:12},
+  {id:'lknee',label:'L knee',back:'L popliteal',s:'e',cx:118,cy:280,rx:14,ry:12},
+  {id:'rleg',label:'R lower leg',back:'R calf',s:'r',x:72,y:292,w:22,h:80,r:10},
+  {id:'lleg',label:'L lower leg',back:'L calf',s:'r',x:106,y:292,w:22,h:80,r:10},
+  {id:'rfoot',label:'R foot',back:'R heel',s:'e',cx:83,cy:384,rx:16,ry:12},
+  {id:'lfoot',label:'L foot',back:'L heel',s:'e',cx:117,cy:384,rx:16,ry:12}
+];
+
+const KEY='cbe_app_v2';
+const N=SYSTEMS.length, VITALS=0;
+const BUILTIN_PRESETS=[
+  {name:'Full exam', ids:SYSTEMS.map((_,i)=>i)},
+  {name:'Vitals + general', ids:[0,1,13,14]},
+  {name:'Cardioresp', ids:[0,1,4,5,6,12]},
+  {name:'Neuro / MSK', ids:[0,1,9,10,11,15]},
+  {name:'No vitals', ids:SYSTEMS.map((_,i)=>i).filter(i=>i!==0)}
+];
+
+let DB={encounters:[], presets:[]};
+let enc=null, deck=[], idx=0, neuroLong=false, tab='chart', undoStack=[], _fromReview=false;
+let setupSel=SYSTEMS.map((_,i)=>i);
+const photos={};
+
+function blankResult(i){ return SYSTEMS[i].type==='value' ? {status:'pending',values:{},flagged:false} : {status:'pending',findings:[],free:'',negatives:[]}; }
+function R(i){ return enc.results[i]; }
+function curSys(){ return deck[idx]; }
+function $(id){ return document.getElementById(id); }
+
+function persist(){ try{ localStorage.setItem(KEY, JSON.stringify(DB)); }catch(e){} }
+function restore(){ try{ const raw=localStorage.getItem(KEY); if(!raw)return; const d=JSON.parse(raw);
+  if(d&&Array.isArray(d.encounters))DB.encounters=d.encounters; if(d&&Array.isArray(d.presets))DB.presets=d.presets; }catch(e){} }
+
+function esc(s){return (''+s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function uid(){return 'e'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function buzz(ms){ try{navigator.vibrate&&navigator.vibrate(ms);}catch(e){} iosHaptic(); }
+function iosHaptic(){ try{ const l=$('hapLabel'); l&&l.click(); }catch(e){} }
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),1700);}
+function todayStr(){const d=new Date();return (d.getMonth()+1)+'/'+d.getDate();}
+function parseDate(s){if(!s)return null;const p=(''+s).trim().split('/');if(p.length<2)return null;const m=parseInt(p[0]),day=parseInt(p[1]);if(isNaN(m)||isNaN(day))return null;return new Date(new Date().getFullYear(),m-1,day);}
+function fmtDate(d){return (d.getMonth()+1)+'/'+d.getDate();}
+function nudge(delta){const inp=$('adate');let d=parseDate(inp.value);if(!d)d=new Date();d.setDate(d.getDate()+delta);inp.value=fmtDate(d);if(enc){enc.date=inp.value;persist();}}
+
+function showView(id){ ['v-setup','v-deck','v-review','v-history'].forEach(v=>$(v).classList.toggle('on',v===id)); }
+function showSetup(){ renderSetup(); showView('v-setup'); }
+function showHistory(){ renderHistory(); showView('v-history'); }
+
+/* ---- setup / presets ---- */
+function renderSetup(){
+  const all=BUILTIN_PRESETS.concat(DB.presets);
+  $('presets').innerHTML=all.map((p,i)=>{
+    const match=p.ids.length===setupSel.length && p.ids.every(x=>setupSel.includes(x));
+    return `<button class="preset ${match?'on':''}" onclick="applyPreset(${i})">${esc(p.name)}</button>`;
+  }).join('');
+  $('sysgrid').innerHTML=SYSTEMS.map((s,i)=>`
+    <div class="sysrow ${setupSel.includes(i)?'on':''}" onclick="toggleSys(${i})" role="button" aria-pressed="${setupSel.includes(i)}">
+      <span class="gi">${ICONS[s.icon]}</span><span class="nm">${s.name}</span><span class="chk">${I_CLEAR}</span></div>`).join('');
+  $('startBtn').disabled=setupSel.length===0;
+}
+function applyPreset(i){ const all=BUILTIN_PRESETS.concat(DB.presets); setupSel=all[i].ids.slice().sort((a,b)=>a-b); renderSetup(); }
+function toggleSys(i){ const k=setupSel.indexOf(i); if(k>=0)setupSel.splice(k,1); else setupSel.push(i); setupSel.sort((a,b)=>a-b); renderSetup(); }
+function saveCurrentPreset(){ const name=$('presetName').value.trim(); if(!name){toast('Name the preset first');return;}
+  DB.presets.push({name, ids:setupSel.slice()}); $('presetName').value=''; persist(); renderSetup(); toast('Preset saved'); }
+
+/* ---- encounters / history ---- */
+function startExam(){
+  if(setupSel.length===0)return;
+  enc={ id:uid(), initials:$('setupInit').value.trim(), date:todayStr(),
+        deckIds:setupSel.slice().sort((a,b)=>a-b), results:SYSTEMS.map((_,i)=>blankResult(i)),
+        status:'in-progress', updated:Date.now() };
+  DB.encounters.unshift(enc);
+  deck=enc.deckIds.slice(); idx=0; neuroLong=false; undoStack=[];
+  for(const k in photos)delete photos[k];
+  persist(); enterDeck();
+}
+function enterDeck(){ showView('v-deck'); buildNav(); renderDeck(); }
+function syncEnc(){ if(enc){enc.updated=Date.now(); persist();} }
+
+function renderHistory(){
+  const el=$('histList');
+  if(DB.encounters.length===0){ el.innerHTML=`<div class="empty">No saved encounters yet.<br>Start one from the New screen.</div>`; return; }
+  el.innerHTML=DB.encounters.map(e=>{
+    const done=e.results.filter(r=>r.status!=='pending').length, tot=e.deckIds.length;
+    return `<div class="enc">
+      <div class="top"><span class="lab">${esc(e.initials||'Patient')}</span>
+        <span class="st ${e.status==='complete'?'done':'prog'}">${e.status==='complete'?'complete':done+'/'+tot}</span></div>
+      <div class="sub">${esc(e.date)} · ${tot} systems</div>
+      <div class="row">
+        <button onclick="openEncounter('${e.id}')">${e.status==='complete'?'View':'Resume'}</button>
+        <button onclick="duplicateEncounter('${e.id}')">Duplicate</button>
+        <button class="danger" onclick="deleteEncounter('${e.id}')">Delete</button>
+      </div></div>`;
+  }).join('');
+}
+function openEncounter(id){
+  enc=DB.encounters.find(e=>e.id===id); if(!enc)return;
+  deck=enc.deckIds.slice(); neuroLong=false; undoStack=[]; for(const k in photos)delete photos[k];
+  if(enc.status==='complete'){ openReview(); }
+  else { const fp=deck.findIndex(si=>R(si).status==='pending'); idx=fp>=0?fp:0; enterDeck(); }
+}
+function duplicateEncounter(id){
+  const src=DB.encounters.find(e=>e.id===id); if(!src)return;
+  const copy=JSON.parse(JSON.stringify(src)); copy.id=uid(); copy.date=todayStr(); copy.status='in-progress'; copy.updated=Date.now();
+  copy.results=copy.deckIds.map(()=>null); copy.results=SYSTEMS.map((_,i)=>blankResult(i));
+  DB.encounters.unshift(copy); persist(); enc=copy; deck=copy.deckIds.slice(); idx=0; undoStack=[]; for(const k in photos)delete photos[k]; enterDeck();
+}
+function deleteEncounter(id){ DB.encounters=DB.encounters.filter(e=>e.id!==id); persist(); renderHistory(); }
+/* ---- deck + nav ---- */
+const deckEl_=()=>$('deck');
+function buildNav(){
+  $('nav').innerHTML=`
+    <button id="navUndo" onclick="undo()"><span class="ic">${I_UNDO}</span><span>Undo</span></button>
+    <button id="navJump" onclick="openJump()"><span class="ic">${I_LIST}</span><span>Systems</span></button>
+    <button id="navReview" onclick="openReview()"><span class="ic">${I_DOC}</span><span>Review</span></button>
+    <button id="navHist" onclick="goHistoryFromDeck()"><span class="ic">${I_HIST}</span><span>History</span></button>`;
+}
+function goHistoryFromDeck(){ syncEnc(); showHistory(); }
+
+function renderDeck(){
+  const done=deck.filter(si=>R(si).status!=='pending').length;
+  $('counter').textContent=String(Math.min(idx+1,deck.length)).padStart(2,'0')+' / '+deck.length;
+  $('ptTag').textContent=enc.initials||'';
+  $('backBtn').disabled=(idx===0);
+  $('railFill').style.width=(done/deck.length*100)+'%';
+  const nr=$('navReview'); if(nr)nr.disabled=done<deck.length;
+  const nu=$('navUndo'); if(nu)nu.disabled=undoStack.length===0;
+  const d=deckEl_(); d.innerHTML='';
+  if(idx>=deck.length){ openReview(); return; }
+  const si=curSys();
+  if(SYSTEMS[si].type==='value') renderValueCard(si); else renderBinaryCard(si);
+  buildActionBar(SYSTEMS[si].type==='value');
+}
+function buildActionBar(isValue){
+  const a=$('actions');
+  if(isValue){
+    a.innerHTML=`<button class="act small defer" onclick="actDefer()"><span class="ic">${I_DEFER}</span>Defer</button>
+      <button class="act record" onclick="recordValue()">Record ›</button>`;
+  } else {
+    a.innerHTML=`<button class="act flag" onclick="actFlag()"><span class="ic">${I_FLAG}</span><span>Flag<small>swipe left</small></span></button>
+      <button class="act small neg" onclick="actNeg()"><span class="ic">${I_NEG}</span>ROS</button>
+      <button class="act small defer" onclick="actDefer()"><span class="ic">${I_DEFER}</span>Defer</button>
+      <button class="act clear" onclick="actClear()"><span class="ic">${I_CLEAR}</span><span>Clear<small>swipe right</small></span></button>`;
+  }
+}
+function renderBinaryCard(si){
+  const s=SYSTEMS[si];
+  const c=document.createElement('div'); c.className='ex-card'; c.setAttribute('role','group'); c.setAttribute('aria-label',s.name+' card');
+  c.innerHTML=`<div class="stamp clear">CLEAR</div><div class="stamp flag">FLAG</div>
+    <div class="stamp neg">ROS −</div><div class="stamp defer">DEFER</div>
+    <div class="glyph">${ICONS[s.icon]}</div><div class="ex-name">${s.name}</div>
+    <div class="ex-hint">right clear · left flag · up ROS · down defer</div>`;
+  deckEl_().appendChild(c); attachCompass(c);
+}
+function attachCompass(card){
+  let sx=0,sy=0,dx=0,dy=0,t0=0,drag=false,axis=null;
+  const sC=card.querySelector('.stamp.clear'),sF=card.querySelector('.stamp.flag'),sN=card.querySelector('.stamp.neg'),sD=card.querySelector('.stamp.defer');
+  const W=card.offsetWidth||340,H=card.offsetHeight||480;
+  const TX=Math.min(W*0.28,120),TY=Math.min(H*0.20,150);
+  function resist(v,t){const a=Math.abs(v);return a<=t?v:Math.sign(v)*(t+(a-t)*0.35);}
+  function down(e){drag=true;axis=null;sx=e.clientX;sy=e.clientY;t0=performance.now();card.style.transition='none';try{card.setPointerCapture(e.pointerId);}catch(_){}}
+  function move(e){if(!drag)return;dx=e.clientX-sx;dy=e.clientY-sy;
+    if(axis===null&&(Math.abs(dx)>8||Math.abs(dy)>8))axis=Math.abs(dx)>Math.abs(dy)?'x':'y';
+    if(e.cancelable)e.preventDefault();
+    if(axis==='x'){const v=resist(dx,TX);card.style.transform=`translateX(${v}px) rotate(${v*0.05}deg)`;
+      const p=Math.min(Math.abs(dx)/TX,1);sN.style.opacity=0;sD.style.opacity=0;
+      if(dx>0){sC.style.opacity=p;sF.style.opacity=0;}else{sF.style.opacity=p;sC.style.opacity=0;}}
+    else if(axis==='y'){const v=resist(dy,TY);card.style.transform=`translateY(${v}px)`;
+      const p=Math.min(Math.abs(dy)/TY,1);sC.style.opacity=0;sF.style.opacity=0;
+      if(dy<0){sN.style.opacity=p;sD.style.opacity=0;}else{sD.style.opacity=p;sN.style.opacity=0;}}
+  }
+  function reset(){card.style.transition='transform .34s cubic-bezier(.22,1,.36,1)';card.style.transform='';
+    sC.style.opacity=0;sF.style.opacity=0;sN.style.opacity=0;sD.style.opacity=0;}
+  function up(){if(!drag)return;drag=false;const dt=performance.now()-t0;
+    if(axis==='x'){const vel=dx/Math.max(dt,1);const go=Math.abs(dx)>TX||(Math.abs(dx)>40&&Math.abs(vel)>0.55);
+      if(!go){reset();return;} if(dx>0){flyOff(card,'right',doClear);}else{reset();actFlag();}}
+    else if(axis==='y'){const vel=dy/Math.max(dt,1);const go=Math.abs(dy)>TY||(Math.abs(dy)>40&&Math.abs(vel)>0.55);
+      if(!go){reset();return;} if(dy>0){flyOff(card,'down',doDefer);}else{reset();actNeg();}}
+    else reset();}
+  card.addEventListener('pointerdown',down);card.addEventListener('pointermove',move);
+  card.addEventListener('pointerup',up);card.addEventListener('pointercancel',up);
+}
+function flyOff(card,dir,cb){
+  const W=window.innerWidth,off=Math.min(W,520);let tf='';
+  if(dir==='right')tf=`translateX(${off}px) rotate(13deg)`;
+  else if(dir==='left')tf=`translateX(${-off}px) rotate(-13deg)`;
+  else if(dir==='down')tf=`translateY(${Math.min(window.innerHeight,700)}px)`;
+  card.style.transition='transform .28s ease-out, opacity .28s ease-out';
+  card.style.transform=tf;card.style.opacity='0';setTimeout(cb,220);
+}
+function pushUndo(si){ undoStack.push({idx,si,snap:JSON.parse(JSON.stringify(R(si)))}); if(undoStack.length>40)undoStack.shift(); }
+function undo(){ if(undoStack.length===0)return; const u=undoStack.pop(); enc.results[u.si]=u.snap; idx=u.idx; buzz(8); syncEnc();
+  if(!$('v-deck').classList.contains('on'))showView('v-deck'); renderDeck(); }
+function advance(){ if(_fromReview){_fromReview=false; openReview(); return;} idx++; syncEnc(); renderDeck(); }
+function doClear(){ const si=curSys(); pushUndo(si); enc.results[si]={status:'clear',findings:[],free:'',negatives:R(si).negatives||[]}; buzz(12); advance(); }
+function doDefer(){ const si=curSys(); pushUndo(si); enc.results[si]={status:'deferred',findings:[],free:'',negatives:[]}; buzz(12); advance(); }
+function actClear(){ const c=deckEl_().querySelector('.ex-card'); if(c)flyOff(c,'right',doClear); else doClear(); }
+function actDefer(){ const c=deckEl_().querySelector('.ex-card'); if(c)flyOff(c,'down',doDefer); else doDefer(); }
+function goBack(){ if(idx>0){idx--; syncEnc(); renderDeck();} }
+
+/* ---- value (vitals) card ---- */
+function lastVitals(){ for(const e of DB.encounters){ if(enc&&e.id===enc.id)continue; const r=e.results[VITALS]; if(r&&r.values&&Object.values(r.values).some(v=>v!==''&&v!=null))return r.values; } return null; }
+function fmtVal(f,v){ if(v===''||v==null)return '—'; return f.step<1?(Math.round(v*10)/10).toFixed(1):String(Math.round(v)); }
+function fieldFlagged(f,v){ if(v===''||v==null)return false; if(f.lo==null&&f.hi==null)return false; if(f.lo!=null&&v<f.lo)return true; if(f.hi!=null&&v>f.hi)return true; return false; }
+function valuesFlagged(vals){ return VITAL_FIELDS.some(f=>fieldFlagged(f,vals[f.key])); }
+function renderValueCard(si){
+  const vals=R(si).values||{}; const last=lastVitals();
+  const c=document.createElement('div'); c.className='vcard';
+  let rows='';
+  VITAL_FIELDS.forEach(f=>{
+    const v=vals[f.key]; const flg=fieldFlagged(f,v);
+    const lastTxt=(last&&last[f.key]!==''&&last[f.key]!=null)?`<span class="vlast">was ${fmtVal(f,last[f.key])}</span>`:'';
+    rows+=`<div class="vrow ${flg?'flagged':''}" data-key="${f.key}" id="vrow-${f.key}">
+      <span class="vlab">${f.label}</span>${lastTxt}
+      <span class="vbox"><span class="vnum ${v===''||v==null?'unset':''}" id="vnum-${f.key}">${fmtVal(f,v)}</span><span class="vunit">${f.unit}</span></span>
+      <span class="grip">⇅</span></div>`;
+  });
+  c.innerHTML=`<div class="vhead"><span class="gi">${ICONS.vitals}</span><span class="nm">VITALS</span></div>
+    <div class="vlist">${rows}<div class="vhint">drag a value up / down · tap to type</div></div>`;
+  deckEl_().appendChild(c);
+  VITAL_FIELDS.forEach(f=>attachValueDrag($('vrow-'+f.key),f));
+}
+function attachValueDrag(row,f){
+  let sy=0,start=0,drag=false;
+  function down(e){ if(e.target.classList.contains('vin'))return; drag=true; sy=e.clientY;
+    const cur=R(curSys()).values[f.key]; start=(cur===''||cur==null)?f.def:cur; try{row.setPointerCapture(e.pointerId);}catch(_){}}
+  function move(e){ if(!drag)return; const dy=e.clientY-sy; if(Math.abs(dy)<3)return; if(e.cancelable)e.preventDefault();
+    let steps=Math.round(-dy/6); let nv=clamp(start+steps*f.step,f.min,f.max); nv=Math.round(nv/f.step)*f.step;
+    R(curSys()).values[f.key]=nv; const n=$('vnum-'+f.key); if(n){n.textContent=fmtVal(f,nv);n.classList.remove('unset');}
+    $('vrow-'+f.key).classList.toggle('flagged',fieldFlagged(f,nv)); }
+  function up(e){ if(!drag)return; drag=false; const moved=Math.abs(e.clientY-sy)>=3;
+    if(!moved){ openTypeInput(row,f); } else { buzz(6); syncEnc(); } }
+  row.addEventListener('pointerdown',down);row.addEventListener('pointermove',move);
+  row.addEventListener('pointerup',up);row.addEventListener('pointercancel',up);
+}
+function openTypeInput(row,f){
+  const box=row.querySelector('.vbox'); const cur=R(curSys()).values[f.key];
+  box.innerHTML=`<input class="vin" type="number" inputmode="decimal" step="${f.step}" value="${cur===''||cur==null?'':cur}"><span class="vunit">${f.unit}</span>`;
+  const inp=box.querySelector('.vin'); inp.focus(); inp.select&&inp.select();
+  function done(){ let val=inp.value.trim(); let nv=val===''?'':clamp(parseFloat(val),f.min,f.max); if(val!==''&&isNaN(nv))nv='';
+    R(curSys()).values[f.key]=nv;
+    box.innerHTML=`<span class="vnum ${nv===''?'unset':''}" id="vnum-${f.key}">${fmtVal(f,nv)}</span><span class="vunit">${f.unit}</span>`;
+    row.classList.toggle('flagged',fieldFlagged(f,nv)); syncEnc(); }
+  inp.addEventListener('blur',done); inp.addEventListener('keydown',e=>{if(e.key==='Enter')inp.blur();});
+}
+function recordValue(){ const si=curSys(); pushUndo(si); const vals=R(si).values||{}; R(si).status='clear'; R(si).flagged=valuesFlagged(vals); buzz(12); advance(); }
+/* ---- flag drilldown sheet ---- */
+let sheetMode='flag', sSys=0, work=[], bodyForFinding=-1, bodySide='front', workNeg=[];
+function openSheet(si){
+  sheetMode='flag'; sSys=si; const s=SYSTEMS[si];
+  work = R(si).status==='flag' ? (R(si).findings||[]).map(f=>({...f})) : [];
+  $('sheetHead').className='sheet-head flag';
+  $('sheetGlyph').innerHTML=ICONS[s.icon];
+  $('sheetKicker').textContent='specify findings';
+  $('sheetName').textContent=s.name;
+  $('freeWrap').style.display='';
+  $('freeIn').value = R(si).status==='flag' ? (R(si).free||'') : '';
+  $('micBtn').innerHTML=I_MIC;
+  buildChips(); renderAxes(); hideBody();
+  $('sheetFoot').innerHTML=`<button class="btn ghost" onclick="sheetMarkClear()">No findings</button>
+    <button class="btn primary" id="saveBtn" onclick="sheetSave()">Save findings</button>`;
+  refreshSave();
+  $('scrim').classList.add('on'); $('sheet').classList.add('on');
+}
+function openNegSheet(si){
+  const s=SYSTEMS[si]; if(!s.neg||!s.neg.length){toast('No quick negatives for this system');return;}
+  sheetMode='neg'; sSys=si; workNeg=(R(si).negatives||[]).slice();
+  $('sheetHead').className='sheet-head neg';
+  $('sheetGlyph').innerHTML=ICONS[s.icon];
+  $('sheetKicker').textContent='assert pertinent negatives';
+  $('sheetName').textContent=s.name;
+  $('freeWrap').style.display='none'; $('sheetAxes').innerHTML=''; hideBody();
+  $('sheetChips').innerHTML=s.neg.map((t,i)=>`<button class="chip neg ${workNeg.includes(t)?'on':''}" onclick="toggleNeg(${i})">${esc(t)}</button>`).join('');
+  $('sheetFoot').innerHTML=`<button class="btn ghost" onclick="dismissSheet()">Cancel</button>
+    <button class="btn primary" style="background:var(--neg)" onclick="negSave()">Mark clear + record</button>`;
+  $('scrim').classList.add('on'); $('sheet').classList.add('on');
+}
+function actFlag(){ openSheet(curSys()); }
+function actNeg(){ openNegSheet(curSys()); }
+function toggleNeg(i){ const t=SYSTEMS[sSys].neg[i]; const k=workNeg.indexOf(t); if(k>=0)workNeg.splice(k,1); else workNeg.push(t); buzz(8);
+  const c=$('sheetChips').children[i]; if(c)c.classList.toggle('on'); }
+function negSave(){ const si=sSys; pushUndo(si); enc.results[si]={status:'clear',findings:[],free:'',negatives:workNeg.slice()}; buzz(12); closeSheet(()=>advance()); }
+
+function buildChips(){
+  const s=SYSTEMS[sSys];
+  const sorted=s.abn.map((a,i)=>({a,i})).sort((x,y)=>x.a.label.localeCompare(y.a.label));
+  $('sheetChips').innerHTML=sorted.map(o=>{ const on=work.some(f=>f.abnIdx===o.i);
+    return `<button class="chip ${on?'on':''}" data-i="${o.i}" onclick="toggleFinding(${o.i})" aria-pressed="${on}">${esc(o.a.label)}</button>`; }).join('');
+}
+function toggleFinding(ai){
+  const k=work.findIndex(f=>f.abnIdx===ai);
+  if(k>=0){ work.splice(k,1); delete photos[sSys+'-'+ai]; } else work.push({abnIdx:ai,loc:'',sev:'',lat:'',onset:''});
+  buzz(8);
+  const chip=document.querySelector('#sheetChips .chip[data-i="'+ai+'"]');
+  if(chip){const on=work.some(f=>f.abnIdx===ai);chip.classList.toggle('on',on);chip.setAttribute('aria-pressed',on);}
+  renderAxes(); refreshSave();
+}
+function renderAxes(){
+  const s=SYSTEMS[sSys]; let h='';
+  work.forEach((f,fi)=>{
+    const a=s.abn[f.abnIdx];
+    h+=`<div class="fblock"><div class="ft"><span class="fn">${esc(a.label)}</span><span class="x" onclick="removeFinding(${fi})">✕</span></div>`;
+    if(s.lat){ h+=`<div class="axlab">Side</div><div class="subchips">`+['Left','Right','Bilateral'].map(L=>`<button class="subchip lat ${f.lat===L?'on':''}" onclick="setAxis(${fi},'lat','${L}')">${L}</button>`).join('')+`</div>`; }
+    if(s.sev&&s.sev.length){ h+=`<div class="axlab">Severity</div><div class="subchips">`+s.sev.map(v=>`<button class="subchip ${f.sev===v?'on':''}" onclick="setAxis(${fi},'sev','${esc(v)}')">${esc(v)}</button>`).join('')+`</div>`; }
+    if(s.loc&&s.loc.length){ h+=`<div class="axlab">Location</div><div class="subchips">`+s.loc.map(l=>`<button class="subchip ${f.loc===l?'on':''}" onclick="setAxis(${fi},'loc','${esc(l)}')">${esc(l)}</button>`).join('')+`</div>`; }
+    h+=`<div class="axlab">Onset</div><div class="subchips">`+ONSETS.map(o=>`<button class="subchip ${f.onset===o?'on':''}" onclick="setAxis(${fi},'onset','${o}')">${o}</button>`).join('')+`</div>`;
+    h+=`<div class="fbtns">`;
+    if(s.body) h+=`<button onclick="showBodyFor(${fi})"><span class="ic">${I_BODY}</span>Body map</button>`;
+    h+=`<label><span class="ic">${I_CAM}</span>Photo<input type="file" accept="image/*" capture="environment" style="display:none" onchange="addPhoto(event,${fi})"></label>`;
+    h+=`</div>`;
+    const ph=photos[sSys+'-'+f.abnIdx]; if(ph)h+=`<img class="fthumb" src="${ph}">`;
+    h+=`</div>`;
+  });
+  $('sheetAxes').innerHTML=h;
+}
+function setAxis(fi,axis,val){ if(work[fi][axis]===val)work[fi][axis]=''; else work[fi][axis]=val; buzz(5); renderAxes(); }
+function removeFinding(fi){ const ai=work[fi].abnIdx; work.splice(fi,1); delete photos[sSys+'-'+ai]; buzz(8);
+  const chip=document.querySelector('#sheetChips .chip[data-i="'+ai+'"]'); if(chip){chip.classList.remove('on');chip.setAttribute('aria-pressed','false');}
+  renderAxes(); refreshSave(); }
+function addPhoto(e,fi){ const file=e.target.files&&e.target.files[0]; if(!file)return; const ai=work[fi].abnIdx;
+  const rd=new FileReader(); rd.onload=()=>{ photos[sSys+'-'+ai]=rd.result; renderAxes(); }; rd.readAsDataURL(file); }
+function refreshSave(){ const b=$('saveBtn'); if(b)b.disabled = work.length===0 && !$('freeIn').value.trim(); }
+function sheetSave(){ const free=$('freeIn').value.trim(); if(work.length===0&&!free)return;
+  const si=sSys; pushUndo(si); enc.results[si]={status:'flag',findings:work.map(f=>({...f})),free,negatives:R(si).negatives||[]}; buzz(12); closeSheet(()=>advance()); }
+function sheetMarkClear(){ const si=sSys; pushUndo(si); enc.results[si]={status:'clear',findings:[],free:'',negatives:R(si).negatives||[]}; closeSheet(()=>advance()); }
+function dismissSheet(){ closeSheet(()=>{ if($('v-deck').classList.contains('on'))renderDeck(); }); }
+function closeSheet(cb){ $('scrim').classList.remove('on'); $('sheet').classList.remove('on'); setTimeout(cb||(()=>{}),300); }
+
+/* ---- body map ---- */
+function hideBody(){ $('sheetBody').style.display='none'; bodyForFinding=-1; }
+function showBodyFor(fi){ bodyForFinding=fi; bodySide='front'; renderBody(); const el=$('sheetBody'); el.style.display=''; el.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+function setBodySide(side){ bodySide=side; renderBody(); }
+function renderBody(){
+  const f=work[bodyForFinding]; const cur=f?f.loc:'';
+  const shapes=BODY_REGIONS.map(r=>{ const lab=bodySide==='back'?r.back:r.label; const on=cur===lab;
+    if(r.s==='e')return `<ellipse class="rg ${on?'on':''}" cx="${r.cx}" cy="${r.cy}" rx="${r.rx}" ry="${r.ry}" onclick="tapRegion('${r.id}')"></ellipse>`;
+    return `<rect class="rg ${on?'on':''}" x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="${r.r}" onclick="tapRegion('${r.id}')"></rect>`; }).join('');
+  $('sheetBody').innerHTML=`<div class="axlab">Tap location on body</div>
+    <div class="bodytabs"><button class="${bodySide==='front'?'on':''}" onclick="setBodySide('front')">Front</button><button class="${bodySide==='back'?'on':''}" onclick="setBodySide('back')">Back</button></div>
+    <svg class="bodysvg" viewBox="0 0 200 410">${shapes}</svg>
+    <div class="bodysel">${cur?esc(cur):'—'}</div>
+    <div class="fbtns" style="justify-content:center"><button onclick="hideBody()">Done</button></div>`;
+}
+function tapRegion(id){ const r=BODY_REGIONS.find(x=>x.id===id); const lab=bodySide==='back'?r.back:r.label;
+  if(bodyForFinding<0)return; work[bodyForFinding].loc=(work[bodyForFinding].loc===lab)?'':lab; buzz(8); renderBody(); renderAxes(); }
+
+/* ---- voice (offline-first: OS keyboard mic; webkit recognition if present) ---- */
+let recog=null, recing=false;
+function toggleMic(){ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ $('freeIn').focus(); toast('Use your keyboard mic to dictate'); return; }
+  if(recing){ recog&&recog.stop(); return; }
+  recog=new SR(); recog.lang='en-US'; recog.interimResults=false; recog.maxAlternatives=1;
+  recog.onresult=ev=>{ const t=ev.results[0][0].transcript; const inp=$('freeIn'); inp.value=(inp.value?inp.value+' ':'')+t; refreshSave(); };
+  recog.onend=()=>{ recing=false; $('micBtn').classList.remove('rec'); };
+  recog.onerror=()=>{ recing=false; $('micBtn').classList.remove('rec'); toast('Dictation unavailable offline — use keyboard mic'); };
+  try{ recog.start(); recing=true; $('micBtn').classList.add('rec'); }catch(e){}
+}
+
+/* ---- jump sheet ---- */
+function openJump(){
+  $('jumpList').innerHTML=deck.map((si,pos)=>{ const r=R(si);
+    const st=r.status==='flag'?'flag':r.status==='deferred'?'def':r.status==='clear'?'clear':'';
+    const lbl=r.status==='pending'?'':r.status;
+    return `<div class="listrow" onclick="jumpTo(${pos})"><span class="gi">${ICONS[SYSTEMS[si].icon]}</span><span class="nm">${SYSTEMS[si].name}</span><span class="st ${st}">${lbl}</span></div>`; }).join('');
+  $('scrim2').classList.add('on'); $('sheet2').classList.add('on');
+}
+function closeJump(){ $('scrim2').classList.remove('on'); $('sheet2').classList.remove('on'); }
+function jumpTo(pos){ closeJump(); idx=pos; _fromReview=false; if(!$('v-deck').classList.contains('on'))showView('v-deck'); renderDeck(); }
+/* ---- compile engine ---- */
+function curClauses(i){ const s=SYSTEMS[i]; return (s.clausesLong&&neuroLong)?s.clausesLong:s.clauses; }
+function stripToken(clause, token){
+  if(!token||clause==null)return clause;
+  const tok=token.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); let c=clause;
+  if(new RegExp(tok+'\\s*,\\s*','i').test(c)) c=c.replace(new RegExp(tok+'\\s*,\\s*','i'),'');
+  else if(new RegExp(',\\s*'+tok,'i').test(c)) c=c.replace(new RegExp(',\\s*'+tok,'i'),'');
+  else c=c.replace(new RegExp(tok,'i'),'');
+  c=c.replace(/\s+/g,' ')
+     .replace(/\s+,/g,',').replace(/,\s*,/g,',')
+     .replace(/,\s*;/g,';').replace(/;\s*,/g,';').replace(/;\s*;/g,';').replace(/:\s*;\s*/g,': ')
+     .replace(/\s+(or|and)\s*;/gi,';')
+     .replace(/\b(No|no)\s+(or|and)\s+/g,'$1 ')
+     .replace(/\bno\s*;\s*no\b/gi,'No').replace(/\b(No|no)\s*;\s*/g,'$1 ')
+     .replace(/,\s*(or|and)\s*\./gi,'.').replace(/\s+(or|and)\s*\./gi,'.')
+     .replace(/\b(or|and)\s+of\b/gi,'of')
+     .replace(/\b(No|no)\s*,\s*/g,'$1 ')
+     .replace(/,\s*(or|and)\b/gi,' $1')
+     .replace(/\s+(with|without)\s*\./gi,'.').replace(/\s+(with|without)\s*;/gi,';')
+     .replace(/;\s*\./g,'.').replace(/,\s*\./g,'.').replace(/\s+\./g,'.').replace(/\.\s*\./g,'.')
+     .replace(/\s{2,}/g,' ').trim();
+  if(c&&!/[.)\]]$/.test(c))c+='.';
+  return c;
+}
+function findingText(s,f){ const a=s.abn[f.abnIdx]; const det=[f.sev,f.lat,f.loc].filter(Boolean).join(', ');
+  const on=f.onset?' × '+f.onset.toLowerCase():''; return a.text+(det?` (${det})`:'')+on; }
+function findingPlain(s,f){ return findingText(s,f).toLowerCase(); }
+function negSentence(t){ return /[.!?]$/.test(t)?t:t+'.'; }
+function vitalsLine(vals,bold){
+  const out=[]; const ff=k=>{const f=VITAL_FIELDS.find(x=>x.key===k);return fieldFlagged(f,vals[k]);};
+  const wrap=(t,fl)=>(bold&&fl)?`<b>${t}</b>`:t;
+  const has=k=>vals[k]!=null&&vals[k]!=='';
+  if(has('sys')||has('dia')){ const f=VITAL_FIELDS.find(x=>x.key==='sys'),g=VITAL_FIELDS.find(x=>x.key==='dia');
+    out.push(wrap(`BP ${fmtVal(f,vals.sys)}/${fmtVal(g,vals.dia)}`, ff('sys')||ff('dia'))); }
+  [['hr','HR',' bpm'],['rr','RR',''],['temp','Temp','°F'],['spo2','SpO₂','%'],['wt','Wt',' lb'],['pain','Pain','/10']].forEach(([k,lab,u])=>{
+    if(has(k)){ const f=VITAL_FIELDS.find(x=>x.key===k); out.push(wrap(`${lab} ${fmtVal(f,vals[k])}${u}`, ff(k))); }
+  });
+  return out.join(', ');
+}
+function sectionHTML(i){
+  const s=SYSTEMS[i], r=R(i);
+  if(s.type==='value'){ if(r.status==='deferred')return `<b>VITALS:</b> Deferred — not obtained.`;
+    const ln=vitalsLine(r.values||{},true); return `<b>VITALS:</b> ${ln||'Not recorded.'}`; }
+  if(r.status==='deferred')return `<b>${s.name}:</b> Deferred — unable to assess.`;
+  if(r.status==='flag'){
+    const clauses=curClauses(i).slice();
+    r.findings.forEach(f=>{ const a=s.abn[f.abnIdx]; if(a.cancel>=0&&a.cancel<clauses.length){ if(a.token)clauses[a.cancel]=stripToken(clauses[a.cancel],a.token); else clauses[a.cancel]=null; } });
+    const kept=clauses.filter(c=>c&&c.trim());
+    const abn=r.findings.map(f=>`<b>${esc(findingText(s,f))}.</b>`);
+    if(r.free&&r.free.trim())abn.push(`<b>${esc(r.free.trim())}.</b>`);
+    const negs=(r.negatives||[]).map(n=>`<span class="neg">${esc(negSentence(n))}</span>`);
+    return `<b>${s.name}:</b> ${[...kept,...abn,...negs].join(' ')}`;
+  }
+  const base=curClauses(i).join(' ');
+  const negs=(r.negatives||[]).map(n=>`<span class="neg">${esc(negSentence(n))}</span>`);
+  return `<b>${s.name}:</b> ${[base,...negs].join(' ')}`;
+}
+function sectionText(i){ const d=document.createElement('div'); d.innerHTML=sectionHTML(i); return d.innerText; }
+
+/* ---- review ---- */
+function openReview(){ tab='chart'; $('tabChart').classList.add('on'); $('tabNote').classList.remove('on');
+  $('adate').value=enc.date||todayStr(); $('adateInit').value=enc.initials||'';
+  renderReview(); showView('v-review'); syncEnc(); }
+function setTab(t){ tab=t; $('tabChart').classList.toggle('on',t==='chart'); $('tabNote').classList.toggle('on',t==='note'); renderReview(); }
+function toggleNeuro(){ neuroLong=!neuroLong; renderReview(); }
+function renderReview(){
+  enc.initials=$('adateInit').value.trim(); enc.date=$('adate').value;
+  const sc=$('rvScroll');
+  if(tab==='note'){ sc.innerHTML=`<div class="notebox">${esc(buildNote())}</div>`; return; }
+  let h='';
+  deck.forEach(si=>{ const s=SYSTEMS[si], r=R(si);
+    const isAbn = r.status==='flag' || (s.type==='value'&&r.flagged);
+    const cls = r.status==='deferred'?'def':(isAbn?'abn':'norm');
+    const tag = r.status==='deferred'?'deferred':(isAbn?'flagged':'clear');
+    let body=sectionHTML(si).replace(/^<b>[^<]*<\/b>\s*/,'');
+    let thumbs=''; if(r.findings){ r.findings.forEach(f=>{ const p=photos[si+'-'+f.abnIdx]; if(p)thumbs+=`<img src="${p}">`; }); }
+    h+=`<div class="sec ${cls}" onclick="editSection(${si})">
+      <div class="h"><span class="gi">${ICONS[s.icon]}</span><span class="nm">${s.name}</span><span class="tag">${tag}</span></div>
+      <div class="txt">${body}</div>
+      ${thumbs?`<div class="thumbs">${thumbs}</div>`:''}
+      ${s.clausesLong?`<span class="neuro-tog" onclick="event.stopPropagation();toggleNeuro()">${neuroLong?'▼ long-form cranial nerves':'▶ long-form cranial nerves'}</span>`:''}
+    </div>`;
+  });
+  sc.innerHTML=h;
+}
+function editSection(si){ idx=deck.indexOf(si); _fromReview=true; showView('v-deck'); renderDeck(); if(R(si).status==='flag')openSheet(si); }
+function editFromReview(){ _fromReview=false; idx=0; showView('v-deck'); renderDeck(); }
+function leaveReview(){ syncEnc(); showHistory(); }
+function finishAndClose(){ const pend=deck.filter(si=>R(si).status==='pending').length; if(pend){toast(pend+' systems still pending');return;}
+  enc.status='complete'; syncEnc(); showHistory(); toast('Encounter saved'); }
+
+/* ---- suggested note ---- */
+function buildNote(){
+  const ini=$('adateInit').value.trim()||'Patient', dt=$('adate').value||enc.date; const L=[];
+  L.push(`${ini} — ${dt}`);
+  if(deck.includes(VITALS)){ const r=R(VITALS); if(r.status==='deferred')L.push('Vitals not obtained.');
+    else { const ln=vitalsLine(r.values||{},false); if(ln)L.push('Vitals: '+ln+'.'); } }
+  const pos=[]; deck.forEach(si=>{ if(si===VITALS)return; const r=R(si); if(r.status==='flag'){
+    const txt=r.findings.map(f=>findingPlain(SYSTEMS[si],f)).concat(r.free&&r.free.trim()?[r.free.trim()]:[]).join(', ');
+    pos.push(`${SYSTEMS[si].name.toLowerCase()} — ${txt}`); } });
+  const negs=[]; deck.forEach(si=>{ const r=R(si); if(r.negatives&&r.negatives.length)negs.push(...r.negatives); });
+  const def=[]; deck.forEach(si=>{ if(R(si).status==='deferred')def.push(SYSTEMS[si].name.toLowerCase()); });
+  if(pos.length){ L.push(''); L.push('Pertinent findings on exam: '+pos.join('; ')+'.'); }
+  if(negs.length){ L.push(''); L.push('Pertinent negatives: '+negs.map(n=>n.replace(/^Denies /i,'no ')).join(', ')+'.'); }
+  if(def.length){ L.push(''); L.push('Deferred / unable to assess: '+def.join(', ')+'.'); }
+  const normal=deck.filter(si=>si!==VITALS && R(si).status==='clear').map(si=>SYSTEMS[si].name.toLowerCase());
+  if(normal.length){ L.push(''); L.push('All other systems examined without abnormal findings ('+normal.join(', ')+').'); }
+  return L.join('\n');
+}
+
+/* ---- output: copy / share (current tab) ---- */
+function buildExam(){
+  const date=$('adate').value, ini=$('adateInit').value.trim(); const h=[],x=[];
+  const hdr=`Date of Exam: ${date}`+(ini?`   Patient: ${ini}`:''); h.push(`<b>${esc(hdr)}</b>`); x.push(hdr);
+  h.push('<b>PHYSICAL EXAM</b>'); x.push('PHYSICAL EXAM');
+  deck.forEach(si=>{ h.push(sectionHTML(si)); x.push(sectionText(si)); });
+  return {html:h.join('<br><br>'), text:x.join('\n\n')};
+}
+function currentOutput(){ if(tab==='note'){ const t=buildNote(); return {html:esc(t).replace(/\n/g,'<br>'), text:t}; } return buildExam(); }
+function copyCurrent(){ const {html,text}=currentOutput();
+  if(navigator.clipboard&&window.ClipboardItem){
+    navigator.clipboard.write([new ClipboardItem({'text/html':new Blob(['<meta charset="utf-8">'+html],{type:'text/html'}),'text/plain':new Blob([text],{type:'text/plain'})})]).then(()=>toast('Copied')).catch(()=>fallbackCopy(text));
+  } else fallbackCopy(text); }
+function fallbackCopy(text){ const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');toast('Copied');}catch(e){toast('Copy unavailable');} document.body.removeChild(ta); }
+function shareCurrent(){ const {text}=currentOutput(); if(navigator.share){navigator.share({title:'Exam',text}).catch(()=>{});} else copyCurrent(); }
+
+/* ---- init ---- */
+if(typeof document!=='undefined'){ restore(); showSetup(); }
+if(typeof module!=='undefined'&&module.exports){ module.exports={stripToken,SYSTEMS}; }
+</script>
+</body>
+</html>
